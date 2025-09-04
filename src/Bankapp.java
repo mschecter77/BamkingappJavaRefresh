@@ -1,3 +1,6 @@
-public class Bankapp {
+import javax.swing.*;
+
+public class Bankapp extends JFrame{
+
 
 }

@@ -8,6 +8,7 @@ public class Bankapp extends JFrame{
  private JLabel balance;
  private JButton deposit;
  private  JButton withdraw;
+ private DefaultListModel<String> recordModel;
  private JList<String> recordList;
  public Bankapp(){
   setTitle("Bank Account");
@@ -15,25 +16,33 @@ public class Bankapp extends JFrame{
   setDefaultCloseOperation(EXIT_ON_CLOSE);
   setLocationRelativeTo(null);
   JPanel dataPanel = new JPanel();
-  dataPanel.setLayout(new BorderLayout());
+  dataPanel.setLayout(new GridLayout(2,2));
 
   JPanel buttonPanel = new JPanel();
   JPanel recordPanel = new JPanel();
   withdraw = new JButton("Withdraw");
   deposit = new JButton("Deposit");
   accountNumber = new JTextField(10);
-  dataPanel.add(accountNumber,BorderLayout.WEST);
-  balance = new JLabel("$");
-  dataPanel.add(balance,BorderLayout.EAST);
-  amount = new JTextField(10);
+  dataPanel.add (new JLabel ("Account#"));
+  dataPanel.add(accountNumber);
+  dataPanel.add (new JLabel ("Balance $" ));
+  balance = new JLabel();
+  dataPanel.add(balance);
+
+
+
   buttonPanel.add(deposit);
   buttonPanel.add(withdraw);
+  buttonPanel.add (new JLabel ("Amount $" ));
+  amount = new JTextField(10);
   buttonPanel.add(amount);
-  recordList = new JList<>();
-  recordPanel.add(recordList);
-  add(dataPanel, BorderLayout.NORTH);
-  add(recordPanel, BorderLayout.CENTER);
-  add(buttonPanel, BorderLayout.SOUTH);
+  recordModel = new DefaultListModel<>();
+  recordList = new JList<>(recordModel);
+  add(dataPanel,BorderLayout.NORTH);
+  add(recordPanel,BorderLayout.CENTER);
+  add(buttonPanel,BorderLayout.SOUTH);
+  recordPanel.setLayout(new BorderLayout());
+  recordPanel.add(new JScrollPane(recordList), BorderLayout.CENTER);
  }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

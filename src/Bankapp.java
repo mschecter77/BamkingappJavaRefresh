@@ -22,13 +22,11 @@ public class Bankapp extends JFrame {
   setDefaultCloseOperation(EXIT_ON_CLOSE);
   setLocationRelativeTo(null);
 
-
   JPanel dataPanel = new JPanel();
   dataPanel.setLayout(new GridLayout(3, 3));
 
   JPanel buttonPanel = new JPanel();
   JPanel recordPanel = new JPanel();
-
 
   bankAccounts = new DefaultListModel<>();
   addAccount = new JButton("Add Account");
@@ -63,7 +61,7 @@ public class Bankapp extends JFrame {
   add(recordPanel, BorderLayout.CENTER);
   add(buttonPanel, BorderLayout.SOUTH);
 
-
+  // Deposit listener
   deposit.addActionListener(new ActionListener() {
    public void actionPerformed(ActionEvent e) {
     try {
@@ -71,8 +69,10 @@ public class Bankapp extends JFrame {
      account selected = (account) accounts.getSelectedItem();
      if (selected != null) {
       selected.deposit(dep);
-      balance.setText(String.valueOf(selected.getBalance()));
-      recordModel.addElement("Deposited $" + dep + " → Balance $" + selected.getBalance());
+      balance.setText(String.format("$%.2f", selected.getBalance()));
+      recordModel.addElement("Acct #" + selected.getAccountNumber() +
+              " Deposited $" + dep + " → Balance $" + selected.getBalance());
+      amount.setText(""); // clear after use
      } else {
       JOptionPane.showMessageDialog(Bankapp.this, "Please select an account first");
      }
@@ -82,7 +82,7 @@ public class Bankapp extends JFrame {
    }
   });
 
-
+  // Withdraw listener
   withdraw.addActionListener(new ActionListener() {
    public void actionPerformed(ActionEvent e) {
     if (accounts.getSelectedItem() == null) {
@@ -94,11 +94,14 @@ public class Bankapp extends JFrame {
       boolean result = selected.withdraw(amt);
 
       if (result) {
-       balance.setText(String.valueOf(selected.getBalance()));
-       recordModel.addElement("Withdrew $" + amt + " → Balance $" + selected.getBalance());
+       balance.setText(String.format("$%.2f", selected.getBalance()));
+       recordModel.addElement("Acct #" + selected.getAccountNumber() +
+               " Withdrew $" + amt + " → Balance $" + selected.getBalance());
       } else {
-       recordModel.addElement("Withdrawal of $" + amt + " failed (Insufficient funds)");
+       recordModel.addElement("Acct #" + selected.getAccountNumber() +
+               " Withdrawal of $" + amt + " failed (Insufficient funds)");
       }
+      amount.setText(""); // clear after use
      } catch (NumberFormatException ex) {
       JOptionPane.showMessageDialog(Bankapp.this, "Enter a valid number");
      }
@@ -106,25 +109,39 @@ public class Bankapp extends JFrame {
    }
   });
 
-
+  // Add account listener
   addAccount.addActionListener(new ActionListener() {
    public void actionPerformed(ActionEvent e) {
     try {
+     int newAccNum = Integer.parseInt(accountNumber.getText());
+
+     // check for duplicates
+     for (int i = 0; i < bankAccounts.size(); i++) {
+      if (bankAccounts.get(i).getAccountNumber() == newAccNum) {
+       JOptionPane.showMessageDialog(Bankapp.this, "Account already exists.");
+       return;
+      }
+     }
+
+     // create new account if unique
      account indacc = new account();
-     indacc.setAccountNumber(Integer.parseInt(accountNumber.getText()));
+     indacc.setAccountNumber(newAccNum);
      bankAccounts.addElement(indacc);
      accounts.addItem(indacc);
+     accountNumber.setText(""); // clear after adding
     } catch (NumberFormatException ex) {
      JOptionPane.showMessageDialog(Bankapp.this, "Enter a valid account number");
     }
    }
   });
+
+  // Update balance when switching accounts
   accounts.addActionListener(new ActionListener() {
    @Override
    public void actionPerformed(ActionEvent e) {
     account selected = (account) accounts.getSelectedItem();
     if (selected != null) {
-     balance.setText(String.valueOf(selected.getBalance()));
+     balance.setText(String.format("$%.2f", selected.getBalance()));
     }
    }
   });

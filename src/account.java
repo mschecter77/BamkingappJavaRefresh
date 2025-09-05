@@ -1,7 +1,10 @@
 public class account {
     int accountNumber;
     float balance;
-
+    @Override
+    public String toString() {
+        return "Acct #" + accountNumber + " | Balance $" + balance;
+    }
 
     public void setAccountNumber(int accountNumber) {
         this.accountNumber = accountNumber;

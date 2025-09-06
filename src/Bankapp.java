@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.SQLException;
 
 public class Bankapp extends JFrame {
 
@@ -128,6 +129,11 @@ public class Bankapp extends JFrame {
      indacc.setAccountNumber(newAccNum);
      bankAccounts.addElement(indacc);
      accounts.addItem(indacc);
+     try {
+      DatabaseHelper.createAccount(indacc.getAccountNumber());
+     } catch (SQLException ex) {
+      JOptionPane.showMessageDialog(Bankapp.this, "Database error: " + ex.getMessage());
+     }
      accountNumber.setText(""); // clear after adding
     } catch (NumberFormatException ex) {
      JOptionPane.showMessageDialog(Bankapp.this, "Enter a valid account number");

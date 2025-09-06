@@ -1,3 +1,5 @@
+Banking App (Java Swing + MySQL)
+
 This is a simple Java Swing application I built as a refresher while preparing for my master’s class in Java.
 It simulates a small banking system where you can:
 
@@ -9,7 +11,9 @@ View account balances
 
 Keep a transaction history per session
 
-Features
+Persist accounts and transactions into a MySQL database
+
+ Features
 
 Add accounts with unique account numbers
 
@@ -21,23 +25,14 @@ View balances in real time
 
 Transaction log (JList) with account-specific activity
 
-Technologies Used
-Java 17+ (works with Java 8 as well)
+Database integration with MySQL (accounts + transactions tables)
 
-Swing (GUI framework)
-
-
-
-
-Setup & Run
-
-Clone the repo:
+ Technologies Used
 
 Java 17+ (works with Java 8 as well)
 
 Swing (GUI framework)
 
+MySQL (database)
 
-Author
-
-Michael Schecter
+dotenv-java

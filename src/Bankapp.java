@@ -62,14 +62,22 @@ public class Bankapp extends JFrame {
   add(recordPanel, BorderLayout.CENTER);
   add(buttonPanel, BorderLayout.SOUTH);
 
-  // Deposit listener
   deposit.addActionListener(new ActionListener() {
    public void actionPerformed(ActionEvent e) {
     try {
      float dep = Float.parseFloat(amount.getText());
      account selected = (account) accounts.getSelectedItem();
+
      if (selected != null) {
       selected.deposit(dep);
+
+      try {
+       DatabaseHelper.deposit(selected.getAccountNumber(), dep);
+      } catch (SQLException ex) {
+       JOptionPane.showMessageDialog(Bankapp.this,
+               "Database error: " + ex.getMessage());
+      }
+
       balance.setText(String.format("$%.2f", selected.getBalance()));
       recordModel.addElement("Acct #" + selected.getAccountNumber() +
               " Deposited $" + dep + " → Balance $" + selected.getBalance());
@@ -82,7 +90,6 @@ public class Bankapp extends JFrame {
     }
    }
   });
-
   // Withdraw listener
   withdraw.addActionListener(new ActionListener() {
    public void actionPerformed(ActionEvent e) {

@@ -8,7 +8,6 @@ public class DatabaseHelper {
     private static final String USER = dotenv.get("DB_USER");
     private static final String PASS = dotenv.get("DB_PASS");
 
-
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASS);
     }
@@ -39,24 +38,27 @@ public class DatabaseHelper {
         }
     }
 
-
+    // Deposit
     public static void deposit(int accNum, float amount) throws SQLException {
-        String sql1 = "UPDATE accounts SET balance = balance + ? WHERE account_number = ?";
-        String sql2 = "INSERT INTO transactions (account_number, type, amount) VALUES (?, 'Deposit', ?)";
+        String updateSql = "UPDATE accounts SET balance = balance + ? WHERE account_number = ?";
+        String insertSql = "INSERT INTO transactions (account_id, type, amount, timestamp) " +
+                "VALUES ((SELECT id FROM accounts WHERE account_number = ?), 'Deposit', ?, NOW())";
 
         try (Connection conn = getConnection()) {
-            try (PreparedStatement stmt1 = conn.prepareStatement(sql1);
-                 PreparedStatement stmt2 = conn.prepareStatement(sql2)) {
+            conn.setAutoCommit(false);
 
-                conn.setAutoCommit(false); // start transaction
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateSql);
+                 PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
 
-                stmt1.setFloat(1, amount);
-                stmt1.setInt(2, accNum);
-                stmt1.executeUpdate();
 
-                stmt2.setInt(1, accNum);
-                stmt2.setFloat(2, amount);
-                stmt2.executeUpdate();
+                updateStmt.setFloat(1, amount);
+                updateStmt.setInt(2, accNum);
+                updateStmt.executeUpdate();
+
+
+                insertStmt.setInt(1, accNum);
+                insertStmt.setFloat(2, amount);
+                insertStmt.executeUpdate();
 
                 conn.commit();
             } catch (SQLException ex) {
@@ -68,11 +70,12 @@ public class DatabaseHelper {
         }
     }
 
-
+    // Withdraw
     public static boolean withdraw(int accNum, float amount) throws SQLException {
         String checkSql = "SELECT balance FROM accounts WHERE account_number = ?";
         String updateSql = "UPDATE accounts SET balance = balance - ? WHERE account_number = ?";
-        String txSql = "INSERT INTO transactions (account_number, type, amount) VALUES (?, 'Withdraw', ?)";
+        String insertSql = "INSERT INTO transactions (account_id, type, amount, timestamp) " +
+                "VALUES ((SELECT id FROM accounts WHERE account_number = ?), 'Withdraw', ?, NOW())";
 
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -80,19 +83,22 @@ public class DatabaseHelper {
             try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
                 checkStmt.setInt(1, accNum);
                 ResultSet rs = checkStmt.executeQuery();
+
                 if (rs.next()) {
                     float currentBalance = rs.getFloat("balance");
                     if (currentBalance >= amount) {
                         try (PreparedStatement updateStmt = conn.prepareStatement(updateSql);
-                             PreparedStatement txStmt = conn.prepareStatement(txSql)) {
+                             PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+
 
                             updateStmt.setFloat(1, amount);
                             updateStmt.setInt(2, accNum);
                             updateStmt.executeUpdate();
 
-                            txStmt.setInt(1, accNum);
-                            txStmt.setFloat(2, amount);
-                            txStmt.executeUpdate();
+
+                            insertStmt.setInt(1, accNum);
+                            insertStmt.setFloat(2, amount);
+                            insertStmt.executeUpdate();
 
                             conn.commit();
                             return true;

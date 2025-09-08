@@ -1,8 +1,5 @@
 import io.github.cdimascio.dotenv.Dotenv;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class DatabaseHelper {
     private static final Dotenv dotenv = Dotenv.load();
@@ -27,36 +24,93 @@ public class DatabaseHelper {
     }
 
 
-    public static void deposit(int accNum, float amount) throws SQLException {
-        String sql1 = "UPDATE accounts SET balance = balance + ? WHERE account_number = ?";
-        String sql2 = "INSERT INTO transactions (account_id, type, amount) VALUES (?, 'Deposit', ?)";
-
-        try (Connection conn = getConnection()) {
-            try (
-                    PreparedStatement stmt1 = conn.prepareStatement(sql1);
-                    PreparedStatement stmt2 = conn.prepareStatement(sql2)
-            ) {
-                conn.setAutoCommit(false); // start transaction
-
-                // 1. Update balance
-                stmt1.setFloat(1, amount);
-                stmt1.setInt(2, accNum);
-                stmt1.executeUpdate();
-
-                // 2. Insert transaction record
-                stmt2.setInt(1, accNum);
-                stmt2.setFloat(2, amount);
-                stmt2.executeUpdate();
-
-                conn.commit(); // commit both
-            } catch (SQLException ex) {
-                conn.rollback(); // rollback if either fails
-                throw ex;        // rethrow so caller knows
-            } finally {
-                conn.setAutoCommit(true); // restore default
+    public static float getBalance(int accNum) throws SQLException {
+        String sql = "SELECT balance FROM accounts WHERE account_number = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, accNum);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getFloat("balance");
+                } else {
+                    throw new SQLException("Account not found: " + accNum);
+                }
             }
         }
     }
 
+
+    public static void deposit(int accNum, float amount) throws SQLException {
+        String sql1 = "UPDATE accounts SET balance = balance + ? WHERE account_number = ?";
+        String sql2 = "INSERT INTO transactions (account_number, type, amount) VALUES (?, 'Deposit', ?)";
+
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement stmt1 = conn.prepareStatement(sql1);
+                 PreparedStatement stmt2 = conn.prepareStatement(sql2)) {
+
+                conn.setAutoCommit(false); // start transaction
+
+                stmt1.setFloat(1, amount);
+                stmt1.setInt(2, accNum);
+                stmt1.executeUpdate();
+
+                stmt2.setInt(1, accNum);
+                stmt2.setFloat(2, amount);
+                stmt2.executeUpdate();
+
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
     }
 
+
+    public static boolean withdraw(int accNum, float amount) throws SQLException {
+        String checkSql = "SELECT balance FROM accounts WHERE account_number = ?";
+        String updateSql = "UPDATE accounts SET balance = balance - ? WHERE account_number = ?";
+        String txSql = "INSERT INTO transactions (account_number, type, amount) VALUES (?, 'Withdraw', ?)";
+
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                checkStmt.setInt(1, accNum);
+                ResultSet rs = checkStmt.executeQuery();
+                if (rs.next()) {
+                    float currentBalance = rs.getFloat("balance");
+                    if (currentBalance >= amount) {
+                        try (PreparedStatement updateStmt = conn.prepareStatement(updateSql);
+                             PreparedStatement txStmt = conn.prepareStatement(txSql)) {
+
+                            updateStmt.setFloat(1, amount);
+                            updateStmt.setInt(2, accNum);
+                            updateStmt.executeUpdate();
+
+                            txStmt.setInt(1, accNum);
+                            txStmt.setFloat(2, amount);
+                            txStmt.executeUpdate();
+
+                            conn.commit();
+                            return true;
+                        }
+                    } else {
+                        conn.rollback();
+                        return false;
+                    }
+                } else {
+                    conn.rollback();
+                    throw new SQLException("Account not found: " + accNum);
+                }
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+}

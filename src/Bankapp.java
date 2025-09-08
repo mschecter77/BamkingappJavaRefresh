@@ -62,68 +62,66 @@ public class Bankapp extends JFrame {
   add(recordPanel, BorderLayout.CENTER);
   add(buttonPanel, BorderLayout.SOUTH);
 
+  // Deposit
   deposit.addActionListener(new ActionListener() {
    public void actionPerformed(ActionEvent e) {
     try {
      float dep = Float.parseFloat(amount.getText());
      account selected = (account) accounts.getSelectedItem();
-
      if (selected != null) {
-      selected.deposit(dep);
-
-      try {
-       DatabaseHelper.deposit(selected.getAccountNumber(), dep);
-      } catch (SQLException ex) {
-       JOptionPane.showMessageDialog(Bankapp.this,
-               "Database error: " + ex.getMessage());
-      }
-
-      balance.setText(String.format("$%.2f", selected.getBalance()));
+      DatabaseHelper.deposit(selected.getAccountNumber(), dep);
+      float newBal = DatabaseHelper.getBalance(selected.getAccountNumber());
+      balance.setText(String.format("$%.2f", newBal));
       recordModel.addElement("Acct #" + selected.getAccountNumber() +
-              " Deposited $" + dep + " → Balance $" + selected.getBalance());
-      amount.setText(""); // clear after use
+              " Deposited $" + dep + " → Balance $" + newBal);
+      amount.setText("");
      } else {
       JOptionPane.showMessageDialog(Bankapp.this, "Please select an account first");
      }
     } catch (NumberFormatException ex) {
      JOptionPane.showMessageDialog(Bankapp.this, "Enter a valid number");
+    } catch (SQLException ex) {
+     JOptionPane.showMessageDialog(Bankapp.this, "Database error: " + ex.getMessage());
     }
    }
   });
-  // Withdraw listener
+
+  // Withdraw
   withdraw.addActionListener(new ActionListener() {
    public void actionPerformed(ActionEvent e) {
-    if (accounts.getSelectedItem() == null) {
+    account selected = (account) accounts.getSelectedItem();
+    if (selected == null) {
      JOptionPane.showMessageDialog(Bankapp.this, "Please select an account first");
     } else {
      try {
       float amt = Float.parseFloat(amount.getText());
-      account selected = (account) accounts.getSelectedItem();
-      boolean result = selected.withdraw(amt);
+      boolean result = DatabaseHelper.withdraw(selected.getAccountNumber(), amt);
+      float newBal = DatabaseHelper.getBalance(selected.getAccountNumber());
 
       if (result) {
-       balance.setText(String.format("$%.2f", selected.getBalance()));
+       balance.setText(String.format("$%.2f", newBal));
        recordModel.addElement("Acct #" + selected.getAccountNumber() +
-               " Withdrew $" + amt + " → Balance $" + selected.getBalance());
+               " Withdrew $" + amt + " → Balance $" + newBal);
       } else {
        recordModel.addElement("Acct #" + selected.getAccountNumber() +
                " Withdrawal of $" + amt + " failed (Insufficient funds)");
       }
-      amount.setText(""); // clear after use
+      amount.setText("");
      } catch (NumberFormatException ex) {
       JOptionPane.showMessageDialog(Bankapp.this, "Enter a valid number");
+     } catch (SQLException ex) {
+      JOptionPane.showMessageDialog(Bankapp.this, "Database error: " + ex.getMessage());
      }
     }
    }
   });
 
-  // Add account listener
+  // Add account
   addAccount.addActionListener(new ActionListener() {
    public void actionPerformed(ActionEvent e) {
     try {
      int newAccNum = Integer.parseInt(accountNumber.getText());
 
-     // check for duplicates
      for (int i = 0; i < bankAccounts.size(); i++) {
       if (bankAccounts.get(i).getAccountNumber() == newAccNum) {
        JOptionPane.showMessageDialog(Bankapp.this, "Account already exists.");
@@ -131,30 +129,32 @@ public class Bankapp extends JFrame {
       }
      }
 
-     // create new account if unique
      account indacc = new account();
      indacc.setAccountNumber(newAccNum);
      bankAccounts.addElement(indacc);
      accounts.addItem(indacc);
-     try {
-      DatabaseHelper.createAccount(indacc.getAccountNumber());
-     } catch (SQLException ex) {
-      JOptionPane.showMessageDialog(Bankapp.this, "Database error: " + ex.getMessage());
-     }
-     accountNumber.setText(""); // clear after adding
+     DatabaseHelper.createAccount(indacc.getAccountNumber());
+     accountNumber.setText("");
     } catch (NumberFormatException ex) {
      JOptionPane.showMessageDialog(Bankapp.this, "Enter a valid account number");
+    } catch (SQLException ex) {
+     JOptionPane.showMessageDialog(Bankapp.this, "Database error: " + ex.getMessage());
     }
    }
   });
 
-  // Update balance when switching accounts
+
   accounts.addActionListener(new ActionListener() {
    @Override
    public void actionPerformed(ActionEvent e) {
     account selected = (account) accounts.getSelectedItem();
     if (selected != null) {
-     balance.setText(String.format("$%.2f", selected.getBalance()));
+     try {
+      float newBal = DatabaseHelper.getBalance(selected.getAccountNumber());
+      balance.setText(String.format("$%.2f", newBal));
+     } catch (SQLException ex) {
+      JOptionPane.showMessageDialog(Bankapp.this, "Database error: " + ex.getMessage());
+     }
     }
    }
   });
